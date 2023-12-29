@@ -1,11 +1,11 @@
 
 
-
 import unittest
 
-class TestIntegration(unittest.TestCase) :
 
-    def test_sometestcase(self) :
+class TestIntegration(unittest.TestCase):
+
+    def test_sometestcase(self):
         # The test cases here should use appropriate
         # asserts to verify that the output of the
         # integration is correct.
@@ -17,5 +17,5 @@ class TestIntegration(unittest.TestCase) :
         # tests.
         pass
 
-    def test_anothertestcase(self) :
+    def test_anothertestcase(self):
         pass
