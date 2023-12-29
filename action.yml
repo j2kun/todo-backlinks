@@ -4,6 +4,9 @@ author: Jeremy Kun
 branding:
   icon: 'link'
   color: 'orange'
+outputs:
+  affected-issues:
+    description: 'comma-separated list of affected issues'
 runs:
   using: 'docker'
   image: 'Dockerfile'

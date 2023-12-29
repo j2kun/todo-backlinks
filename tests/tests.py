@@ -1,5 +1,3 @@
-
-
 import unittest
 
 # Your module imported assuming working directory
