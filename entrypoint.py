@@ -14,16 +14,25 @@ import github
 
 # Supported regex patterns
 
+# TODO(#2): Support more regex patterns
+
 # Issue number assuming current repository
-ISSUE_NUMBER_RE = r'TODO[(]#([0-9]+)[)]: ?(.*)'
+ISSUE_NUMBER_RE = r'TODO[(]\#([0-9]+)[)]: ?(.+)'
 
 
 def main(gh_repo, local_repo):
     affected_issues = []
 
-    result = local_repo.git.grep(ISSUE_NUMBER_RE)
+    try:
+        result = local_repo.git.grep(ISSUE_NUMBER_RE)
+        print(result)
+    except git.exc.GitCommandError as e:
+        # Status 1 includes the possibility that no matches were found, so we
+        # can proceed.
+        if e.status not in [0, 1]:
+            raise e
 
-    print(result)
+
 
     # issues = gh_repo.get_issues()
     # if issues:
@@ -46,7 +55,7 @@ if __name__ == "__main__":
 
     local_repo = git.Repo(pathlib.Path(__file__).parent.resolve())
     assert not local_repo.bare, "Found bare repo, quitting"
-    assert not local_repo.is_dirty(), "Found dirty repo, quitting"
+    # assert not local_repo.is_dirty(), "Found dirty repo, quitting"
 
     affected_issues = main(gh_repo, local_repo)
 
