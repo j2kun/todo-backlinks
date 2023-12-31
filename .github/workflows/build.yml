@@ -33,6 +33,11 @@ jobs:
     - name: Integration test
       id: integration
       uses: ./
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+        GITHUB_SERVER_URL: ${{ github.server_url }}
+        GITHUB_REPOSITORY: ${{ github.repository }}
+        GITHUB_BASE_REF: ${{ github.base_ref }}
 
     - name: Output the outputs of the integration test of the action
       run: |
