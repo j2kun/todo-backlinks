@@ -81,8 +81,8 @@ def try_find_comment(issue):
     return None
 
 
-def main(gh_repo, local_repo):
-    affected_issues = dict()
+def main(gh_repo, local_repo) -> dict[int, Update]:
+    affected_issues: dict[int, Update] = dict()
 
     try:
         results = local_repo.git.grep("-n", ISSUE_NUMBER_RE)
@@ -156,9 +156,10 @@ if __name__ == "__main__":
 
     gh.close()
 
+    issue_list = ",".join([str(x) for x in affected_issues.keys()])
     if "GITHUB_OUTPUT" in os.environ:
         with open(os.environ["GITHUB_OUTPUT"], "a") as f:
             print(
-                "{0}={1}".format("affected-issues", ",".join(affected_issues.keys())),
+                "{0}={1}".format("affected-issues", issue_list),
                 file=f,
             )
