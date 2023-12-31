@@ -33,9 +33,6 @@ jobs:
     - name: Integration test
       id: integration
       uses: ./
-      with:
-        input-one: something
-        input-two: true
 
     - name: Output the outputs of the integration test of the action
       run: |
