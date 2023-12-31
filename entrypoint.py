@@ -105,8 +105,14 @@ def main(gh_repo, local_repo) -> dict[int, Update]:
             )
 
     for issue_number, todo_list in todos.items():
-        issue = gh_repo.get_issue(issue_number)
-        assert issue, f"Unable to find issue linked by TODO: {todo_list[0]}"
+        try:
+            issue = gh_repo.get_issue(issue_number)
+        except:
+            issue = None
+
+        if not issue:
+            print(f"Unable to find issue linked by TODO: {todo_list[0]}")
+            continue
         print(f"Checking #{issue.number}: {issue.title}")
 
         comment = try_find_comment(issue)

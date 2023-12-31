@@ -48,7 +48,7 @@ class FakeGitHubRepo:
         self.issues[issue.number] = issue
 
     def get_issue(self, number):
-        return self.issues[number]
+        return self.issues.get(number)
 
     def get_issues(self, state):
         return self.issues.values()
@@ -244,3 +244,12 @@ def test_issue_with_existing_comment_deleted():
     actual = main(gh_repo, local_repo)
     assert len(actual) == 1
     assert actual[1].delete_comment
+
+
+def tests_nonexistent_issue():
+    gh_repo = FakeGitHubRepo()
+    local_repo = FakeLocalRepo()
+    local_repo.add_match("myfile.py:123: TODO(#1): fix it")
+
+    actual = main(gh_repo, local_repo)
+    assert len(actual) == 0
