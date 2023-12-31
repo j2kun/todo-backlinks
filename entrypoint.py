@@ -21,6 +21,7 @@ BOT_SIGNATURE = (
 GITHUB_SERVER_URL = os.environ.get("GITHUB_SERVER_URL", "https://github.com")
 GITHUB_REPOSITORY = os.environ.get("GITHUB_REPOSITORY")
 GITHUB_BASE_REF = os.environ.get("GITHUB_BASE_REF", "main")
+DRY_RUN = os.environ.get("DRY_RUN", "false").lower()[0] == "t"
 
 # Supported regex patterns; these need to be in whatever flavor of regex is
 # supported by git grep.
@@ -144,6 +145,9 @@ if __name__ == "__main__":
     print("Affected issues: ")
     for issue_number, update in affected_issues.items():
         print(f"updating #{issue_number}")
+        if DRY_RUN:
+            continue
+
         if update.comment:
             update.comment.edit(update.new_comment_body)
         else:
