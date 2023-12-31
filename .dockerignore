@@ -1,3 +1,2 @@
-*
-!Dockerfile
-!entrypoint.py
+tests
+venv
