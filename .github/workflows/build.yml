@@ -45,6 +45,6 @@ jobs:
         echo "affected-issues = ${{ steps.integration.outputs.affected-issues }}"
 
     - name: Verify integration test results
-      run: python3 -u -m unittest tests/integration.py
+      run: python3 -m pytest tests/integration.py
       env:
         AFFECTED_ISSUES: ${{ steps.integration.outputs.affected-issues }}
