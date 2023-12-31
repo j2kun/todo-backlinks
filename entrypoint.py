@@ -13,7 +13,6 @@ BOT_SIGNATURE = (
     "[todo-backlinks](https://github.com/j2kun/todo-backlinks)"
 )
 GITHUB_SERVER_URL = os.environ.get("GITHUB_SERVER_URL", "https://github.com")
-GITHUB_BASE_REF = os.environ.get("GITHUB_BASE_REF", "main")
 DRY_RUN = os.environ.get("DRY_RUN", "false").lower()[0] == "t"
 
 # Supported regex patterns; these need to be in whatever flavor of regex is
@@ -48,7 +47,8 @@ class Update:
 
 def single_todo_comment(todo: Todo) -> str:
     repo = os.environ.get("GITHUB_REPOSITORY")
-    blob_base = f"{GITHUB_SERVER_URL}/{repo}/blob/{GITHUB_BASE_REF}"
+    base_ref = os.environ.get("GITHUB_BASE_REF", "main")
+    blob_base = f"{GITHUB_SERVER_URL}/{repo}/blob/{base_ref}"
     link_url = f"{blob_base}/{todo.filepath}#L{todo.line}"
     return f"[{todo.filepath}:{todo.line}]({link_url}): {todo.message}"
 
@@ -133,7 +133,7 @@ def main(gh_repo, local_repo) -> dict[int, Update]:
 if __name__ == "__main__":
     auth = github.Auth.Token(os.environ.get("GITHUB_TOKEN"))
     gh = github.Github(auth=auth)
-    gh_repo = gh.get_repo(GITHUB_REPOSITORY)
+    gh_repo = gh.get_repo(os.environ.get("GITHUB_REPOSITORY"))
 
     assert gh_repo, "Could not find github repo, quitting"
 

@@ -41,6 +41,7 @@ class FakeIssue:
 class FakeGitHubRepo:
     def __init__(self):
         os.environ["GITHUB_REPOSITORY"] = "j2kun/todo-backlinks"
+        os.environ["GITHUB_BASE_REF"] = "main"
         self.issues: dict[int, FakeIssue] = dict()
 
     def add_issue(self, issue: FakeIssue):
