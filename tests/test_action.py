@@ -50,6 +50,9 @@ class FakeGitHubRepo:
     def get_issue(self, number):
         return self.issues[number]
 
+    def get_issues(self, state):
+        return self.issues.values()
+
 
 def test_issue_with_no_comment():
     gh_repo = FakeGitHubRepo()
@@ -213,3 +216,31 @@ def test_issue_with_existing_comment_changed():
 
     assert len(expected) == len(actual)
     assert expected[1] == actual[1]
+
+
+def test_issue_with_existing_comment_deleted():
+    bot_comment = (
+        "This issue has 1 outstanding TODOs:\n\n"
+        " - [myfile.py:123]"
+        "(https://github.com/j2kun/todo-backlinks/blob/main/myfile.py#L123)"
+        ": fix it\n\n" + BOT_SIGNATURE
+    )
+    issue_comment = FakeComment(bot_comment)
+    gh_repo = FakeGitHubRepo()
+    gh_repo.add_issue(
+        FakeIssue(
+            number=1,
+            title="test issue",
+            comments=[
+                FakeComment("This is my test issue"),
+                issue_comment,
+            ],
+        )
+    )
+
+    local_repo = FakeLocalRepo()
+    # no matches
+
+    actual = main(gh_repo, local_repo)
+    assert len(actual) == 1
+    assert actual[1].delete_comment

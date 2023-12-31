@@ -33,9 +33,7 @@ class Todo:
     message: str
 
     def __repr__(self):
-        return (
-            f"Todo({repr(self.filepath)}, {repr(self.line)}, {repr(self.issue_number)}, {repr(self.message)})"
-        )
+        return f"Todo({repr(self.filepath)}, {repr(self.line)}, {repr(self.issue_number)}, {repr(self.message)})"
 
 
 @dataclass
@@ -43,6 +41,7 @@ class Update:
     todos: list[Todo]
     comment: Optional[github.IssueComment.IssueComment]
     new_comment_body: str
+    delete_comment: bool = False
 
 
 def single_todo_comment(todo: Todo) -> str:
@@ -88,21 +87,22 @@ def main(gh_repo, local_repo) -> dict[int, Update]:
         results = ""
 
     todos: dict[int, list[Todo]] = dict()
-    for result in results.strip().split("\n"):
-        split = result.split(":")
-        assert len(split) == 4, split
-        filepath, line, todo, message = split
-        issue_number = int(todo.split(")")[0].split("(")[1][1:])
-        if issue_number not in todos:
-            todos[issue_number] = []
-        todos[issue_number].append(
-            Todo(
-                filepath=filepath,
-                line=line,
-                issue_number=issue_number,
-                message=message.strip(),
+    if results:
+        for result in results.strip().split("\n"):
+            split = result.split(":")
+            assert len(split) == 4, split
+            filepath, line, todo, message = split
+            issue_number = int(todo.split(")")[0].split("(")[1][1:])
+            if issue_number not in todos:
+                todos[issue_number] = []
+            todos[issue_number].append(
+                Todo(
+                    filepath=filepath,
+                    line=line,
+                    issue_number=issue_number,
+                    message=message.strip(),
+                )
             )
-        )
 
     for issue_number, todo_list in todos.items():
         issue = gh_repo.get_issue(issue_number)
@@ -125,7 +125,19 @@ def main(gh_repo, local_repo) -> dict[int, Update]:
                 new_comment_body=make_comment(todo_list),
             )
 
-    # TODO(#4): remove comments which no longer have TODOs
+    # delete comments whose TODOs are gone
+    for issue in gh_repo.get_issues(state="open"):
+        if issue.number in affected_issues or issue.number in todos:
+            continue
+        for comment in issue.get_comments():
+            if BOT_SIGNATURE in comment.body:
+                print(f"Found #{issue.number} with comment to delete: {comment.body}")
+                affected_issues[issue.number] = Update(
+                    todos=[],
+                    comment=comment,
+                    new_comment_body="",
+                    delete_comment=True,
+                )
 
     return affected_issues
 
