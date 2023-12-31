@@ -1,11 +1,5 @@
 #!/usr/bin/env -S python3 -B
 
-# NOTE: If you are using an alpine docker image
-# such as pyaction-lite, the -S option above won't
-# work. The above line works fine on other linux distributions
-# such as debian, etc, so the above line will work fine
-# if you use pyaction:4.0.0 or higher as your base docker image.
-
 import os
 import pathlib
 from dataclasses import dataclass
@@ -19,7 +13,6 @@ BOT_SIGNATURE = (
     "[todo-backlinks](https://github.com/j2kun/todo-backlinks)"
 )
 GITHUB_SERVER_URL = os.environ.get("GITHUB_SERVER_URL", "https://github.com")
-GITHUB_REPOSITORY = os.environ.get("GITHUB_REPOSITORY")
 GITHUB_BASE_REF = os.environ.get("GITHUB_BASE_REF", "main")
 DRY_RUN = os.environ.get("DRY_RUN", "false").lower()[0] == "t"
 
@@ -42,7 +35,7 @@ class Todo:
 
     def __repr__(self):
         return (
-            f"Todo({self.filepath}, {self.line}, {self.issue_number}, {self.message})"
+            f"Todo({repr(self.filepath)}, {repr(self.line)}, {repr(self.issue_number)}, {repr(self.message)})"
         )
 
 
@@ -54,14 +47,15 @@ class Update:
 
 
 def single_todo_comment(todo: Todo) -> str:
-    blob_base = f"{GITHUB_SERVER_URL}/{GITHUB_REPOSITORY}/blob/{GITHUB_BASE_REF}"
+    repo = os.environ.get("GITHUB_REPOSITORY")
+    blob_base = f"{GITHUB_SERVER_URL}/{repo}/blob/{GITHUB_BASE_REF}"
     link_url = f"{blob_base}/{todo.filepath}#L{todo.line}"
-    return f"[{todo.filepath}:{todo.line}]({link_url}) : {todo.message}"
+    return f"[{todo.filepath}:{todo.line}]({link_url}): {todo.message}"
 
 
 def make_comment(todos: list[Todo]) -> str:
     return (
-        f"This issue has {len(todos)} outstanding TODOs:\n"
+        f"This issue has {len(todos)} outstanding TODOs:\n\n"
         + "\n".join(" - " + single_todo_comment(t) for t in todos)
         + "\n\n"
         + BOT_SIGNATURE
@@ -101,7 +95,14 @@ def main(gh_repo, local_repo) -> dict[int, Update]:
         issue_number = int(todo.split(")")[0].split("(")[1][1:])
         if issue_number not in todos:
             todos[issue_number] = []
-        todos[issue_number].append(Todo(filepath, line, issue_number, message))
+        todos[issue_number].append(
+            Todo(
+                filepath=filepath,
+                line=line,
+                issue_number=issue_number,
+                message=message.strip(),
+            )
+        )
 
     for issue_number, todo_list in todos.items():
         issue = gh_repo.get_issue(issue_number)
