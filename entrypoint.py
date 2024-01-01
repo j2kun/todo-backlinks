@@ -242,7 +242,7 @@ if __name__ == "__main__":
 
     assert gh_repo, "Could not find github repo, quitting"
 
-    local_repo = git.Repo(pathlib.Path(__file__).parent.resolve())
+    local_repo = git.Repo(pathlib.Path.cwd())
     assert not local_repo.bare, "Found bare repo, quitting"
     # assert not local_repo.is_dirty(), "Found dirty repo, quitting"
 
