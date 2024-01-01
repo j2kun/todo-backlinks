@@ -33,14 +33,15 @@ jobs:
     - name: Integration test
       id: integration
       uses: ./
+      with:
+        # only check for TODOs in this file, to avoid conflicts
+        # with readmes, unit tests, etc.
+        git_grep_pathspecs: ":/tests/integration.py"
       env:
         GITHUB_TOKEN: ${{ github.token }}
         GITHUB_SERVER_URL: ${{ github.server_url }}
         GITHUB_REPOSITORY: ${{ github.repository }}
         GITHUB_BASE_REF: ${{ github.base_ref }}
-        # only check for TODOs in this file, to avoid conflicts
-        # with readmes, unit tests, etc.
-        INPUT_GIT_GREP_PATHSPECS: ":/tests/integration.py"
         DRY_RUN: true
 
     - name: Output the outputs of the integration test of the action

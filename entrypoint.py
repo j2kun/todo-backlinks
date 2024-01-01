@@ -89,9 +89,11 @@ def populate_todos_from_source(local_repo):
     pathspecs = os.environ.get("INPUT_GIT_GREP_PATHSPECS")
     if pathspecs:
         grep_args.append("--")
-        grep_args += pathspecs.split(" ")
+        grep_args.append(pathspecs)
+    else:
+        print("No pathspects provided, searching entire repo")
     try:
-        print(f"Running `git grep {' '.join(grep_args)}`")
+        print(f"Running `git grep {' '.join(repr(x) for x in grep_args)}`")
         results = local_repo.git.grep(*grep_args)
     except git.exc.GitCommandError as e:
         # Status 1 includes the possibility that no matches were found, so we
