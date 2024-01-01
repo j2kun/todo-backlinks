@@ -4,6 +4,11 @@ author: Jeremy Kun
 branding:
   icon: 'link'
   color: 'orange'
+inputs:
+  git_grep_pathspecs:
+    description: 'a space-separated list of git pathspecs used in calling git grep to search for TODOs'
+    required: false
+    default: ''
 outputs:
   affected-issues:
     description: 'comma-separated list of affected issues'

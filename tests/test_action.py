@@ -17,7 +17,7 @@ class FakeLocalRepo:
             def __init__(self):
                 pass
 
-            def grep(self2, flag, regex):
+            def grep(self2, *args):
                 return "\n".join(self.matches)
 
         return FakeGit()

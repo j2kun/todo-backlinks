@@ -1,9 +1,10 @@
 #!/usr/bin/env -S python3 -B
 
-import os
-import pathlib
 from dataclasses import dataclass
 from typing import Optional
+import difflib
+import os
+import pathlib
 
 import git
 import github
@@ -43,7 +44,7 @@ class Update:
 
 
 def single_todo_comment(todo: Todo) -> str:
-    repo = os.environ.get("GITHUB_REPOSITORY")
+    repo = os.environ["GITHUB_REPOSITORY"]
     base_ref = os.environ.get("GITHUB_BASE_REF", "main")
     blob_base = f"{GITHUB_SERVER_URL}/{repo}/blob/{base_ref}"
     link_url = f"{blob_base}/{todo.filepath}#L{todo.line}"
@@ -73,7 +74,7 @@ def comment_up_to_date(
     todos: list[Todo],
 ) -> bool:
     expected_comment = make_comment(todos, warn_closed=WARN_SENTINEL in comment.body)
-    return comment.body == expected_comment
+    return comment.body.replace('\r', '') == expected_comment
 
 
 def try_find_comment(issue):
@@ -84,8 +85,14 @@ def try_find_comment(issue):
 
 
 def populate_todos_from_source(local_repo):
+    grep_args = ["-n", ISSUE_NUMBER_RE]
+    pathspecs = os.environ.get("INPUT_GIT_GREP_PATHSPECS")
+    if pathspecs:
+        grep_args.append("--")
+        grep_args += pathspecs.split(" ")
     try:
-        results = local_repo.git.grep("-n", ISSUE_NUMBER_RE)
+        print(f"Running `git grep {' '.join(grep_args)}`")
+        results = local_repo.git.grep(*grep_args)
     except git.exc.GitCommandError as e:
         # Status 1 includes the possibility that no matches were found, so we
         # can proceed.
@@ -127,7 +134,7 @@ def get_issue_and_bot_comment(gh_repo, issue_number):
         print(f"Unable to find issue linked by TODO: {issue_number}")
         return None, None
 
-    print(f"Checking #{issue.number}: {issue.title}")
+    print(f"  #{issue.number}: {issue.title}")
     comment = try_find_comment(issue)
     return issue, comment
 
@@ -135,33 +142,49 @@ def get_issue_and_bot_comment(gh_repo, issue_number):
 def populate_updates_from_todos(gh_repo, todos, affected_issues):
     """Insert Updates into affected_issues using discovered TODOs in the codebase."""
     for issue_number, todo_list in todos.items():
+        print(f"\nChecking #{issue_number} for comment update")
+        if issue_number in affected_issues:
+            print(f"  #{issue_number} is already affected")
+            continue
+
         issue, comment = get_issue_and_bot_comment(gh_repo, issue_number)
         if not issue:
+            print(f"  #{issue_number} not found")
             continue
+        new_comment = make_comment(todo_list)
         if not comment:
-            print(f"Found #{issue.number} has no comment referring to this TODO")
+            print(f"  #{issue.number} has no comment referring to this TODO")
+            print(f"  #{issue.number} will be updated to have comment\n\n```\n{new_comment}\n```")
             affected_issues[issue_number] = Update(
                 todos=todo_list, comment=None, new_comment_body=make_comment(todo_list)
             )
             continue
 
         if not comment_up_to_date(comment, todo_list):
-            print(f"Found #{issue.number} with stale comment {comment.body}")
+            print(f"  #{issue.number} has stale comment\n\n```\n{comment.body}\n```")
+            print(f"  #{issue.number} will be updated to have comment\n\n```\n{new_comment}\n```")
+            diff = difflib.unified_diff(
+                comment.body.replace('\r', '').splitlines(keepends=True),
+                new_comment.splitlines(keepends=True),
+            )
+            print(f"  diff between current and new comment:\n\n```diff\n{''.join(diff)}\n```")
             affected_issues[issue_number] = Update(
                 todos=todo_list,
                 comment=comment,
-                new_comment_body=make_comment(todo_list),
+                new_comment_body=new_comment,
             )
 
 
 def populate_updates_from_needed_deletions(gh_repo, todos, affected_issues):
     """Insert Updates into affected_issues for issues that need their comment deleted."""
     for issue in gh_repo.get_issues(state="open"):
+        print(f"\nChecking #{issue.number} for comments to delete")
         if issue.number in affected_issues or issue.number in todos:
+            print(f"  #{issue.number} is already affected or has todo")
             continue
         for comment in issue.get_comments():
             if BOT_SIGNATURE in comment.body:
-                print(f"Found #{issue.number} with comment to delete: {comment.body}")
+                print(f"  #{issue.number} has comment to delete: {comment.body}")
                 affected_issues[issue.number] = Update(
                     todos=[],
                     comment=comment,
@@ -174,14 +197,20 @@ def populate_updates_for_prematurely_closed_issues(gh_repo, todos, affected_issu
     """Insert Updates into affected_issues for issues that were closed before
     their TODOs were removed."""
     for issue_number, todo_list in todos.items():
+        print(f"\nChecking #{issue_number} for premature closure")
         if issue_number in affected_issues:
+            print(f"  #{issue_number} is already affected")
             continue
 
         issue, comment = get_issue_and_bot_comment(gh_repo, issue_number)
         if not issue:
+            print(f"  #{issue_number} not found")
             continue
+        print(f"  #{issue_number} has state {issue.state}")
         if comment and issue.state == "closed" and WARN_SENTINEL not in comment.body:
-            print(f"Found closed #{issue.number} with one or more outstanding TODOs")
+            print(
+                f"  #{issue.number} is closed with one or more outstanding TODOs, no existing warning"
+            )
             # We want to delete and re-create the comment to ensure
             # notifications fire. Could consider automatically re-opening the
             # issue, but the most likely scenario is the TODO is stale and it
@@ -199,17 +228,17 @@ def main(gh_repo, local_repo) -> dict[int, Update]:
     affected_issues: dict[int, Update] = dict()
 
     todos = populate_todos_from_source(local_repo)
+    populate_updates_for_prematurely_closed_issues(gh_repo, todos, affected_issues)
     populate_updates_from_todos(gh_repo, todos, affected_issues)
     populate_updates_from_needed_deletions(gh_repo, todos, affected_issues)
-    populate_updates_for_prematurely_closed_issues(gh_repo, todos, affected_issues)
 
     return affected_issues
 
 
 if __name__ == "__main__":
-    auth = github.Auth.Token(os.environ.get("GITHUB_TOKEN"))
+    auth = github.Auth.Token(os.environ["GITHUB_TOKEN"])
     gh = github.Github(auth=auth)
-    gh_repo = gh.get_repo(os.environ.get("GITHUB_REPOSITORY"))
+    gh_repo = gh.get_repo(os.environ["GITHUB_REPOSITORY"])
 
     assert gh_repo, "Could not find github repo, quitting"
 
@@ -219,12 +248,13 @@ if __name__ == "__main__":
 
     affected_issues = main(gh_repo, local_repo)
 
-    print("Affected issues: ")
+    print("Affected issues: " + ", ".join([str(x) for x in affected_issues.keys()]))
     for issue_number, update in affected_issues.items():
-        print(f"updating #{issue_number}")
         if DRY_RUN:
+            print(f"Dry run, skipping updating #{issue_number}")
             continue
 
+        print(f"Updating #{issue_number}")
         if update.delete_comment:
             update.comment.delete()
             if update.new_comment_body:

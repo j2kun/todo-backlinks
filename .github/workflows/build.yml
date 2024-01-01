@@ -38,6 +38,8 @@ jobs:
         GITHUB_SERVER_URL: ${{ github.server_url }}
         GITHUB_REPOSITORY: ${{ github.repository }}
         GITHUB_BASE_REF: ${{ github.base_ref }}
+        # omit test_action and README.md because they contain TODO-matching strings
+        INPUT_GIT_GREP_PATHSPECS: ":^tests/test_action.py :^*.md"
         DRY_RUN: true
 
     - name: Output the outputs of the integration test of the action
