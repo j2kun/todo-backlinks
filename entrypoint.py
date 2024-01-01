@@ -19,9 +19,6 @@ WARN_SENTINEL = "[!NOTE]"
 # Supported regex patterns; these need to be in whatever flavor of regex is
 # supported by git grep.
 
-# A test TODO for the integration tests against this repostiory
-# TODO(#2): Support more regex patterns
-
 # Issue number assuming issues are in the current repository
 ISSUE_NUMBER_RE = r"TODO(#[0-9]\+): \?.\+"
 
