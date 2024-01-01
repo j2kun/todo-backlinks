@@ -2,6 +2,7 @@ FROM cicirello/pyaction:4
 
 # GH automatically puts the context repo's source here
 WORKDIR /github/workspace
+RUN git config --system --add safe.directory *
 
 # ensure our action's source code doesn't conflict
 COPY entrypoint.py /entrypoint.py
