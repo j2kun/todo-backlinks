@@ -45,7 +45,8 @@ class Update:
 
 def single_todo_comment(todo: Todo) -> str:
     repo = os.environ["GITHUB_REPOSITORY"]
-    base_ref = os.environ.get("GITHUB_BASE_REF", "main")
+    base_ref = os.environ.get("GITHUB_REF_NAME",
+        os.environ.get("GITHUB_DEFAULT_BRANCH", "main"))
     blob_base = f"{GITHUB_SERVER_URL}/{repo}/blob/{base_ref}"
     link_url = f"{blob_base}/{todo.filepath}#L{todo.line}"
     return f"[{todo.filepath}:{todo.line}]({link_url}): {todo.message}"
