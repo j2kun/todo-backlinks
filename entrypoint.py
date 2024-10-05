@@ -107,8 +107,16 @@ def populate_todos_from_source(local_repo):
     if results:
         for result in results.strip().split("\n"):
             split = result.split(":")
-            assert len(split) == 4, split
-            filepath, line, todo, message = split
+            assert len(split) >= 4, f"Expected at least one colon after TODO(#xxx), but found: {split}"
+            filepath, line, todo = split[:3]
+
+            # if the message contains a colon, preserve it.
+            message_tokens = split[3:]
+            if len(message_tokens) > 1:
+                message = ":".join(message_tokens)
+            else:
+                message = message_tokens[0]
+
             issue_number = int(todo.split(")")[0].split("(")[1][1:])
             if issue_number not in todos:
                 todos[issue_number] = []
