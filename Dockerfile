@@ -1,4 +1,4 @@
-FROM cicirello/pyaction:4
+FROM cicirello/pyaction:4.32.0
 
 # GH automatically puts the context repo's source here
 WORKDIR /github/workspace
